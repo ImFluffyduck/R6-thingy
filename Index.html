@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SiegeBuddy" />
+  <title>R6 Siege Buddy</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --border: #334155;
+      --accent: #f97316; --blue: #38bdf8; --text: #f8fafc; --sub: #94a3b8;
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); padding-bottom: 80px; user-select: none; }
+    header { background: var(--card); padding: 14px 16px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+    .title { color: var(--accent); font-weight: 800; font-size: 18px; text-align: center; letter-spacing: 1px; }
+    .stats { display: flex; justify-content: space-around; margin-top: 8px; font-size: 13px; font-weight: 600; color: #cbd5e1; }
+    .container { padding: 16px; max-width: 500px; margin: 0 auto; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    h2 { font-size: 15px; margin: 0 0 12px 0; color: var(--blue); text-transform: uppercase; letter-spacing: 0.5px; }
+    .pet-box { text-align: center; padding: 12px 0; }
+    .pet-icon { font-size: 68px; margin-bottom: 6px; display: inline-block; animation: float 2.5s infinite ease-in-out; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .pet-name { font-size: 20px; font-weight: 800; }
+    .pet-rank { color: var(--accent); font-weight: 700; font-size: 14px; margin-top: 4px; }
+    .bar-bg { background: var(--border); height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
+    .bar-fill { background: var(--accent); height: 100%; transition: width 0.3s; }
+    button { background: var(--accent); color: #fff; border: none; padding: 12px 16px; border-radius: 8px; font-weight: 700; width: 100%; cursor: pointer; font-size: 14px; margin-top: 8px; }
+    button.secondary { background: var(--border); }
+    button.blue { background: #0284c7; }
+    .timer-display { font-size: 46px; font-weight: 800; text-align: center; margin: 12px 0; font-variant-numeric: tabular-nums; }
+    .phase-btn { text-align: left; margin-bottom: 6px; background: #0f172a; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .phase-btn.done { border-color: #22c55e; color: #86efac; }
+    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--border); display: flex; padding: 8px 0; }
+    .nav-btn { flex: 1; background: none; border: none; color: var(--sub); font-size: 12px; font-weight: 600; padding: 6px; margin: 0; }
+    .nav-btn.active { color: var(--accent); }
+    input[type="time"] { background: #0f172a; color: #fff; border: 1px solid var(--border); padding: 10px; border-radius: 8px; width: 100%; font-size: 16px; margin-bottom: 10px; }
+    .tag { font-size: 11px; background: #0f172a; padding: 4px 8px; border-radius: 4px; color: var(--blue); display: inline-block; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="title">R6 SIEGE BUDDY // TACTICAL GRIND</div>
+  <div class="stats">
+    <span id="stat-xp">⚡ 0 XP</span>
+    <span id="stat-renown">🪙 100 Renown</span>
+    <span id="stat-streak">🔥 1 Day Streak</span>
+  </div>
+</header>
+
+<div class="container">
+  <!-- TAB 1: COMPANION PET -->
+  <div id="tab-pet" class="tab-content">
+    <div class="card">
+      <h2>Tactical Companion</h2>
+      <div class="pet-box">
+        <div class="pet-icon" id="pet-icon">🛸</div>
+        <div class="pet-name" id="pet-name">Recruit Drone (Twitch-01)</div>
+        <div class="pet-rank" id="pet-rank">Rank: Copper IV</div>
+        <div id="pet-cosmetic" class="tag" style="display:none;"></div>
+        <p id="pet-desc" style="color:var(--sub); font-size:13px; margin:8px 0 0 0;">Standard drone learning not to get shot in prep phase.</p>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--sub);">
+        <span id="lvl-label">Level 1</span>
+        <span id="xp-label">0 / 100 XP</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" id="xp-bar" style="width:0%"></div></div>
+      <button onclick="tuneUpDrone()">🔧 Tune Up Companion (+20 XP / +15 🪙)</button>
+    </div>
+
+    <div class="card">
+      <h2>1-Death Rule Habit Tracker</h2>
+      <p style="font-size:12px; color:var(--sub); margin-top:0;">Tap why you died this match to track your #1 bad habit (+10 XP):</p>
+      <button class="secondary" onclick="logDeath('noDrone')">🛸 Swung Without Droning (<span id="d-noDrone">0</span>)</button>
+      <button class="secondary" onclick="logDeath('wideSwing')">🏃 Wide-Swung Multiple Angles (<span id="d-wideSwing">0</span>)</button>
+      <button class="secondary" onclick="logDeath('recoil')">🎯 Lost Recoil / Missed Head (<span id="d-recoil">0</span>)</button>
+    </div>
+  </div>
+
+  <!-- TAB 2: 60-MIN ROUTINE -->
+  <div id="tab-routine" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2>Live Drill Timer</h2>
+      <div id="active-drill-name" style="text-align:center; color:var(--accent); font-weight:700; font-size:14px;">Phase 1: Shooting Range (10m)</div>
+      <div class="timer-display" id="timer">10:00</div>
+      <div style="display:flex; gap:8px;">
+        <button id="timer-btn" onclick="toggleTimer()">START DRILL</button>
+        <button class="secondary" onclick="completeCurrentDrill()">✅ SKIP / COMPLETE (+75 XP)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Daily 60-Minute Phases (Tap to Load)</h2>
+      <button class="phase-btn" onclick="setDrill('Phase 1: Shooting Range (Recoil)', 600)">
+        <span>1. Shooting Range (Recoil & Tracking)</span><span>10m</span>
+      </button>
+      <button class="phase-btn" onclick="setDrill('Phase 2: Endless Drill (Crosshair)', 900)">
+        <span>2. Endless Drill (Map Head-Level)</span><span>15m</span>
+      </button>
+      <button class="phase-btn" onclick="setDrill('Phase 3: Arcade FFA (No Sound)', 900)">
+        <span>3. Arcade FFA / TDM (Raw Speed)</span><span>15m</span>
+      </button>
+      <button class="phase-btn" onclick="setDrill('Phase 4: Ranked Micro-Goal Execution', 1200)">
+        <span>4. Ranked Execution (2-3 Matches)</span><span>20m</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- TAB 3: REMINDERS & ALERTS -->
+  <div id="tab-reminders" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2>🔔 Daily Warmup Reminder</h2>
+      <p style="font-size:13px; color:var(--sub); margin-top:0;">Set your daily R6 grind time. Save it inside the app AND add it to your phone's native alarm/calendar so it rings even when your phone is locked.</p>
+      
+      <label style="font-size:12px; font-weight:700; display:block; margin-bottom:6px;">Select Daily Warmup Time:</label>
+      <input type="time" id="alarm-time" value="18:00" onchange="saveAlarmTime()" />
+      
+      <div id="alarm-status" style="font-size:13px; color:#86efac; margin-bottom:10px; font-weight:600;">✅ Daily Reminder Set for 18:00</div>
+
+      <button class="blue" onclick="enablePushNotifications()">1. Enable Browser Pop-up & Sound Alerts</button>
+      <button onclick="downloadCalendarAlarm()">2. Add Recurring Alarm to Phone Calendar (.ics)</button>
+      <button class="secondary" onclick="testAlarmSound()">🔊 Test Tactical Alarm Sound Now</button>
+    </div>
+  </div>
+
+  <!-- TAB 4: ARMORY SHOP -->
+  <div id="tab-shop" class="tab-content" style="display:none;">
+    <div class="card">
+      <h2>Armory Cosmetics</h2>
+      <div id="shop-list"></div>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="switchTab('pet', this)">🐶 Pet</button>
+  <button class="nav-btn" onclick="switchTab('routine', this)">⏱️ Routine</button>
+  <button class="nav-btn" onclick="switchTab('reminders', this)">🔔 Reminders</button>
+  <button class="nav-btn" onclick="switchTab('shop', this)">🎁 Armory</button>
+</nav>
+
+<script>
+  const EVOS = [
+    { name: "Recruit Drone (Twitch-01)", rank: "Copper IV", xp: 0, icon: "🛸", desc: "Learning not to get shot in prep phase." },
+    { name: "Fenrir Scout K-9", rank: "Silver II", xp: 100, icon: "🐺", desc: "Equipped with F-NATT Dread Mine tracking gear." },
+    { name: "Deimos Tracker Hound", rank: "Gold I", xp: 250, icon: "🦾", desc: "DeathMARK locked. Hunts roamers effortlessly." },
+    { name: "Nighthaven Cyber-Wolf", rank: "Platinum I", xp: 500, icon: "⚡", desc: "Laser recoil control and pre-aim mastery." },
+    { name: "Champion Apex Cerberus", rank: "CHAMPION 🏆", xp: 900, icon: "👑", desc: "Unstoppable top-fragger & IGL." }
+  ];
+
+  const SHOP = [
+    { id: "blackice", name: "❄️ Black Ice Weapon Coat", cost: 150 },
+    { id: "tachanka", name: "🛡️ Lord Tachanka Turret", cost: 300 },
+    { id: "nvg", name: "🕶️ Sam Fisher Fourth Echelon NVG", cost: 500 }
+  ];
+
+  let state = JSON.parse(localStorage.getItem('r6_buddy_save')) || {
+    xp: 0, renown: 100, streak: 1, alarm: "18:00",
+    owned: [], equipped: "", deaths: { noDrone: 0, wideSwing: 0, recoil: 0 },
+    lastFiredDate: ""
+  };
+
+  let timeLeft = 600, timerId = null;
+
+  function saveState() {
+    localStorage.setItem('r6_buddy_save', JSON.stringify(state));
+    render();
+  }
+
+  function render() {
+    document.getElementById('stat-xp').innerText = `⚡ ${state.xp} XP`;
+    document.getElementById('stat-renown').innerText = `🪙 ${state.renown} Renown`;
+    document.getElementById('stat-streak').innerText = `🔥 ${state.streak} Day Streak`;
+    document.getElementById('alarm-time').value = state.alarm;
+    document.getElementById('alarm-status').innerText = `✅ Daily Reminder Active for ${state.alarm}`;
+
+    // Evolution calculation
+    let idx = 0;
+    EVOS.forEach((e, i) => { if (state.xp >= e.xp) idx = i; });
+    const cur = EVOS[idx], next = EVOS[idx + 1] || cur;
+    document.getElementById('pet-icon').innerText = cur.icon;
+    document.getElementById('pet-name').innerText = cur.name;
+    document.getElementById('pet-rank').innerText = `Rank: ${cur.rank}`;
+    document.getElementById('pet-desc').innerText = cur.desc;
+    document.getElementById('lvl-label').innerText = `Stage ${idx + 1} / ${EVOS.length}`;
+    document.getElementById('xp-label').innerText = `${state.xp} / ${next.xp} XP`;
+    const pct = next === cur ? 100 : Math.min(100, ((state.xp - cur.xp) / (next.xp - cur.xp)) * 100);
+    document.getElementById('xp-bar').style.width = pct + "%";
+
+    const cosEl = document.getElementById('pet-cosmetic');
+    if (state.equipped) { cosEl.style.display = 'inline-block'; cosEl.innerText = `Equipped: ${state.equipped}`; }
+    else { cosEl.style.display = 'none'; }
+
+    // Deaths
+    document.getElementById('d-noDrone').innerText = state.deaths.noDrone;
+    document.getElementById('d-wideSwing').innerText = state.deaths.wideSwing;
+    document.getElementById('d-recoil').innerText = state.deaths.recoil;
+
+    // Shop
+    const shopHtml = SHOP.map(item => {
+      const isOwned = state.owned.includes(item.id);
+      const isEq = state.equipped === item.name;
+      return `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border);">
+        <div><div style="font-weight:700; font-size:14px;">${item.name}</div><div style="font-size:12px; color:var(--sub);">Cost: 🪙 ${item.cost}</div></div>
+        <button style="width:auto; margin:0;" onclick="buyOrEquip('${item.id}', '${item.name}', ${item.cost})">
+          ${isOwned ? (isEq ? 'EQUIPPED' : 'EQUIP') : `BUY (${item.cost})`}
+        </button>
+      </div>`;
+    }).join('');
+    document.getElementById('shop-list').innerHTML = shopHtml;
+  }
+
+  function tuneUpDrone() { state.xp += 20; state.renown += 15; saveState(); }
+  function logDeath(type) { state.deaths[type]++; state.xp += 10; saveState(); }
+
+  function buyOrEquip(id, name, cost) {
+    if (state.owned.includes(id)) {
+      state.equipped = state.equipped === name ? "" : name;
+    } else if (state.renown >= cost) {
+      state.renown -= cost; state.owned.push(id); state.equipped = name;
+    } else { alert("Not enough Renown! Complete drills to earn more."); }
+    saveState();
+  }
+
+  function setDrill(name, secs) {
+    clearInterval(timerId); timerId = null;
+    document.getElementById('timer-btn').innerText = "START DRILL";
+    document.getElementById('active-drill-name').innerText = name;
+    timeLeft = secs; updateTimerUI();
+  }
+
+  function updateTimerUI() {
+    const m = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const s = String(timeLeft % 60).padStart(2, '0');
+    document.getElementById('timer').innerText = `${m}:${s}`;
+  }
+
+  function toggleTimer() {
+    if (timerId) {
+      clearInterval(timerId); timerId = null;
+      document.getElementById('timer-btn').innerText = "RESUME DRILL";
+    } else {
+      document.getElementById('timer-btn').innerText = "PAUSE";
+      timerId = setInterval(() => {
+        if (timeLeft > 0) { timeLeft--; updateTimerUI(); }
+        else { completeCurrentDrill(); }
+      }, 1000);
+    }
+  }
+
+  function completeCurrentDrill() {
+    clearInterval(timerId); timerId = null;
+    document.getElementById('timer-btn').innerText = "START DRILL";
+    state.xp += 75; state.renown += 100; saveState();
+    testAlarmSound();
+    alert("🔥 Drill Complete! +75 XP & +100 Renown added to your Siege Buddy!");
+  }
+
+  // REMINDER & ALARM ENGINE
+  function saveAlarmTime() {
+    state.alarm = document.getElementById('alarm-time').value;
+    saveState();
+  }
+
+  function testAlarmSound() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [520, 680, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.frequency.value = freq; osc.type = 'sawtooth';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (i + 1) * 0.18);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.18); osc.stop(ctx.currentTime + (i + 1) * 0.18);
+    });
+  }
+
+  function enablePushNotifications() {
+    if (!("Notification" in window)) return alert("Browser notifications not supported on this device. Use Button #2 to add to your phone calendar!");
+    Notification.requestPermission().then(perm => {
+      if (perm === "granted") {
+        new Notification("R6 Siege Buddy Armed! 🛡️", { body: `Daily warmup reminder set for ${state.alarm}.` });
+      } else {
+        alert("Permission denied. Use Button #2 to add a native phone alarm!");
+      }
+    });
+  }
+
+  function downloadCalendarAlarm() {
+    const [hr, min] = state.alarm.split(':');
+    const now = new Date();
+    const dtStart = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}T${hr}${min}00`;
+    const ics = [
+      "BEGIN:VCALENDAR", "VERSION:2.0", "BEGIN:VEVENT",
+      `DTSTART:${dtStart}`, "RRULE:FREQ=DAILY",
+      "SUMMARY:🛡️ R6 Siege 60-Min Warmup & Companion Feed",
+      "DESCRIPTION:Open R6 Siege Buddy! Complete Shooting Range, Endless Drill, and FFA before Ranked.",
+      "BEGIN:VALARM", "TRIGGER:-PT0M", "ACTION:DISPLAY", "DESCRIPTION:R6 Warmup Time!", "END:VALARM",
+      "END:VEVENT", "END:VCALENDAR"
+    ].join("\r\n");
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = "R6-Siege-Daily-Reminder.ics";
+    link.click();
+  }
+
+  // Check every 15 seconds if alarm time reached
+  setInterval(() => {
+    const now = new Date();
+    const curTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const todayStr = now.toDateString();
+    if (curTime === state.alarm && state.lastFiredDate !== todayStr) {
+      state.lastFiredDate = todayStr;
+      saveState();
+      testAlarmSound();
+      if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("🔥 R6 SIEGE WARMUP TIME!", { body: "Do not queue Ranked cold! Feed your Siege Buddy and hit the Shooting Range." });
+      }
+      alert("🔔 R6 SIEGE WARMUP REMINDER: Time for your 60-minute routine!");
+    }
+  }, 15000);
+
+  function switchTab(tab, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.getElementById('tab-' + tab).style.display = 'block';
+    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  render();
+</script>
+</body>
+</html>
